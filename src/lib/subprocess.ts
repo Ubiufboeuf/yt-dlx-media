@@ -38,7 +38,7 @@ export async function asyncSubprocess (command: string, args: string[], options?
       const isSuccess = ignoreExitCode || allowedExitCodes?.includes(exitCode)
 
       if (isSuccess) {
-        resolve({ type: 'success', stdout, exitCode })
+        resolve({ type: 'success', stdout: stdout || stderr, exitCode })
       } else {
         const error = new SubprocessError(
           `El proceso "${command}" finalizó con código ${exitCode}.\nStderr: ${stderr}`,
