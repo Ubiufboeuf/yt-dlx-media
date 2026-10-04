@@ -3,6 +3,9 @@ import type { SubprocessOptions } from './subprocessTypes'
 export interface ProcessorOptions extends SubprocessOptions {
   outputDir?: string
   overrideResult?: boolean
+  codec?: 'copy' | string & {}
+  vcodec?: 'copy' | string & {}
+  acodec?: 'copy' | string & {}
 }
 
 export interface ProcessorResult {

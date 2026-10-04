@@ -15,6 +15,13 @@ export class FFmpegAdapter implements MediaProcessor {
     videos.forEach((v) => args.push('-i', v))
     audios.forEach((a) => args.push('-i', a))
 
+    for (let i = 0; i < videos.length; i++) args.push('-map', `${i}:v:0`)
+    for (let i = 0; i < audios.length; i++) args.push('-map', `${videos.length + i}:a:0`)
+
+    if (options?.codec) args.push('-c', options.codec)
+    if (options?.vcodec) args.push('-c:v', options.vcodec)
+    if (options?.acodec) args.push('-c:a', options.acodec)
+
     args.push(outputPath)
 
     const result = await asyncSubprocess(this.binaryPath, args, options)
