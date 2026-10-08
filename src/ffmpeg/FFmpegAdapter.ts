@@ -1,6 +1,9 @@
+import { stat } from 'node:fs/promises'
+import { VIDEO_BITRATE_PRESETS } from '../lib/constants'
 import { asyncSubprocess } from '../lib/subprocess'
-import type { MediaProcessor, ProcessorOptions, ProcessorResult } from '../types/processorTypes'
-import { resolve } from 'node:path'
+import type { Resolution } from '../types/mediaTypes'
+import type { MediaProcessor, NormalizeOptions, NormalizeResult, ProcessorOptions, ProcessorResult } from '../types/processorTypes'
+import { join, resolve } from 'node:path'
 
 export class FFmpegAdapter implements MediaProcessor {
   private binaryPath: string
@@ -33,5 +36,44 @@ export class FFmpegAdapter implements MediaProcessor {
     return {
       filePath: resolve(outputPath)
     }
+  }
+
+  async normalize (inputFile: string, outputDir: string, resolutions: Resolution[], options?: NormalizeOptions): Promise<NormalizeResult> {
+    const vcodec = options?.vcodec ?? 'libx264'
+    const args = [options?.overrideResult ? '-y' : '-n', '-i', inputFile]
+
+    resolutions.forEach((res) => {
+      const { bitrate, maxrate, bufsize } = VIDEO_BITRATE_PRESETS[res]
+      const height = Number.parseInt(res, 10)
+      const audioMap = options?.keepAudio
+        ? ['-map', '0:a?', '-c:a', 'copy']
+        : ['-an']
+
+      args.push(
+        '-map', '0:v', ...audioMap,
+        '-c:v', vcodec, '-vf', `scale=w=-2:h=${height}`,
+        '-b:v', bitrate, '-maxrate', maxrate, '-bufsize', bufsize,
+        '-g', '48', '-keyint_min', '48', '-sc_threshold', '0',
+        '-f', 'mp4', `${outputDir}/${res}.mp4`
+      )
+    })
+
+    const result = await asyncSubprocess(this.binaryPath, args, options)
+
+    if (result.type === 'error') {
+      throw result.error
+    }
+
+    const outputFiles = resolutions.map((res) => join(outputDir, `${res}.mp4`))
+    const existingFiles: string[] = []
+
+    for (const file of outputFiles) {
+      try {
+        const info = await stat(file)
+        if (info.isFile() && info.size > 0) existingFiles.push(resolve(file))
+      } catch {/* empty */}
+    }
+
+    return { outputFiles: existingFiles }
   }
 }
