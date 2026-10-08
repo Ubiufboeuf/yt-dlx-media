@@ -1,7 +1,7 @@
 {
   "name": "@yt-dlx/media",
   "description": "Multimedia Processing Utilities",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "module": "entry.ts",
   "type": "module",
   "main": "./dist/index.js",
