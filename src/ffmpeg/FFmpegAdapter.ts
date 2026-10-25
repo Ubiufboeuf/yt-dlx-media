@@ -1,9 +1,9 @@
 import { stat } from 'node:fs/promises'
-import { VIDEO_BITRATE_PRESETS } from '../lib/constants'
 import { asyncSubprocess } from '../lib/subprocess'
 import type { Resolution } from '../types/mediaTypes'
 import type { MediaProcessor, NormalizeOptions, NormalizeResult, ProcessorOptions, ProcessorResult } from '../types/processorTypes'
 import { join, resolve } from 'node:path'
+import { getFullResolution, getScale, getSourceStats } from '../lib/stats'
 
 export class FFmpegAdapter implements MediaProcessor {
   private binaryPath: string
@@ -41,20 +41,42 @@ export class FFmpegAdapter implements MediaProcessor {
   async normalize (inputFile: string, outputDir: string, resolutions: Resolution[], options?: NormalizeOptions): Promise<NormalizeResult> {
     const vcodec = options?.vcodec ?? 'libx264'
     const args = [options?.overrideResult ? '-y' : '-n', '-i', inputFile]
+    const sourceStats = getSourceStats(inputFile)
 
     resolutions.forEach((res) => {
-      const { bitrate, maxrate, bufsize } = VIDEO_BITRATE_PRESETS[res]
-      const height = Number.parseInt(res, 10)
+      const { height, width } = getFullResolution(res, sourceStats.resolution)
+
+      const scale = getScale(
+        sourceStats.resolution.width,
+        sourceStats.resolution.height,
+        width,
+        height
+      )
+
+      const qualityScale = Math.min(1, scale * 1.3)
+
+      const bitrate = `${Math.round(parseInt(sourceStats.bitrate) * qualityScale)}k`
+      const maxrate = `${Math.round(parseInt(sourceStats.maxrate) * qualityScale)}k`
+      const bufsize = `${Math.round(parseInt(sourceStats.bufsize) * qualityScale)}k`
+
       const audioMap = options?.keepAudio
         ? ['-map', '0:a?', '-c:a', 'copy']
         : ['-an']
 
       args.push(
-        '-map', '0:v', ...audioMap,
-        '-c:v', vcodec, '-vf', `scale=w=-2:h=${height}`,
-        '-b:v', bitrate, '-maxrate', maxrate, '-bufsize', bufsize,
-        '-g', '48', '-keyint_min', '48', '-sc_threshold', '0',
-        '-f', 'mp4', `${outputDir}/${res}.mp4`
+        '-map', '0:v:0', ...audioMap,
+        '-c:v', vcodec,
+        '-vf', `scale=w=${parseInt(width)}:h=${parseInt(height)}`,
+        '-pix_fmt', 'yuv420p',
+        '-b:v', bitrate,
+        '-maxrate', maxrate,
+        '-bufsize', bufsize,
+        '-preset', 'veryfast',
+        '-g', '48',
+        '-keyint_min', '48',
+        '-sc_threshold', '0',
+        '-f', 'mp4',
+        `${outputDir}/${res}.mp4`
       )
     })
 
