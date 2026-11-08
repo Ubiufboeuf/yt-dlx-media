@@ -82,7 +82,7 @@ export class FFmpegAdapter implements MediaProcessor {
         path
       )
 
-      files.push({ path, res: `${height}p` })
+      files.push({ path, res: height })
     })
 
     const result = await asyncSubprocess(this.binaryPath, args, options)
