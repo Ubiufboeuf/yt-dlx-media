@@ -21,6 +21,7 @@ export interface ProcessorResult {
 
 export interface NormalizeResult {
   outputFiles: string[]
+  files: { path: string; res: string }[]
 }
 
 export interface MediaProcessor {

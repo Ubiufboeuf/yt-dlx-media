@@ -42,9 +42,11 @@ export class FFmpegAdapter implements MediaProcessor {
     const vcodec = options?.vcodec ?? 'libx264'
     const args = [options?.overrideResult ? '-y' : '-n', '-i', inputFile]
     const sourceStats = getSourceStats(inputFile)
+    const files: { path: string; res: string }[] = []
 
     resolutions.forEach((res) => {
       const { height, width } = getFullResolution(res, sourceStats.resolution)
+      const path = join(outputDir, `${res}.mp4`)
 
       const scale = getScale(
         sourceStats.resolution.width,
@@ -63,6 +65,7 @@ export class FFmpegAdapter implements MediaProcessor {
         ? ['-map', '0:a?', '-c:a', 'copy']
         : ['-an']
 
+
       args.push(
         '-map', '0:v:0', ...audioMap,
         '-c:v', vcodec,
@@ -76,8 +79,10 @@ export class FFmpegAdapter implements MediaProcessor {
         '-keyint_min', '48',
         '-sc_threshold', '0',
         '-f', 'mp4',
-        `${outputDir}/${res}.mp4`
+        path
       )
+
+      files.push({ path, res: `${height}p` })
     })
 
     const result = await asyncSubprocess(this.binaryPath, args, options)
@@ -96,6 +101,9 @@ export class FFmpegAdapter implements MediaProcessor {
       } catch {/* empty */}
     }
 
-    return { outputFiles: existingFiles }
+    return {
+      outputFiles: existingFiles,
+      files
+    }
   }
 }
