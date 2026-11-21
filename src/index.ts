@@ -13,5 +13,6 @@ export { FFmpegAdapter } from './ffmpeg/FFmpegAdapter'
 export { MediaEngine, type MediaEngineConfig } from './engines/MediaEngine'
 
 // 4. Otros
+export { getSourceStats } from './lib/stats'
 export { SubprocessError, type SubprocessErrorData } from './errors/SubprocessError'
 export type * from './types/processorTypes'
