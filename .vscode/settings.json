@@ -1,6 +1,7 @@
 {
   "conventionalCommits.scopes": [
     "ffmpeg",
-    "engine"
+    "engine",
+    "api"
   ]
 }
